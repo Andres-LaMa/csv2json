@@ -7,8 +7,8 @@ import (
 	"io"
 	"time"
 
-	"your_project/internal/parser"
-	"your_project/internal/utils"
+	"github.com/Andres-LaMa/csv2json/internal/parser"
+	"github.com/Andres-LaMa/csv2json/internal/utils"
 )
 
 // JSONToCSV конвертирует JSON в CSV потоково.

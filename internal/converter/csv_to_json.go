@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io"
 
-	"your_project/internal/parser"
+	"github.com/Andres-LaMa/csv2json/internal/parser"
 )
 
 // CSVToJSON конвертирует CSV в JSON потоково.

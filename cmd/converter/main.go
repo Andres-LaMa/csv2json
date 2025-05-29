@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"your_project/internal/converter"
-	"your_project/internal/utils"
+	"github.com/Andres-LaMa/csv2json/internal/converter"
+	"github.com/Andres-LaMa/csv2json/internal/utils"
 )
 
 var (

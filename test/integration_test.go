@@ -3,9 +3,12 @@ package test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"testing"
-	"your_project/internal/converter"
+
+	"github.com/Andres-LaMa/csv2json/internal/converter"
+	"github.com/Andres-LaMa/csv2json/internal/utils"
 )
 
 func TestCSVToJSON(t *testing.T) {
