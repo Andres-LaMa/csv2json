@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"log"
 	"os"
 )
@@ -14,6 +15,13 @@ func LogInfo(msg string) {
 	InfoLogger.Println(msg)
 }
 
-func LogError(err error) {
-	ErrorLogger.Println(err)
+func LogError(msg interface{}) {
+	switch v := msg.(type) {
+	case error:
+		ErrorLogger.Println(v.Error())
+	case string:
+		ErrorLogger.Println(v)
+	default:
+		ErrorLogger.Println(fmt.Sprint(v))
+	}
 }

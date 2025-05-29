@@ -2,6 +2,7 @@ package converter
 
 import (
 	"bytes"
+	"encoding/json"
 	"testing"
 )
 
@@ -16,17 +17,22 @@ Bob,30`
 		t.Fatalf("CSVToJSON failed: %v", err)
 	}
 
-	expected := `[
-  {
-    "name": "Alice",
-    "age": 25
-  },
-  {
-    "name": "Bob",
-    "age": 30
-  }
-]`
-	if buf.String() != expected {
-		t.Errorf("Expected:\n%s\nGot:\n%s", expected, buf.String())
+	// Декодируем результат в структуру
+	var result []map[string]interface{}
+	if err := json.Unmarshal(buf.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+
+	// Проверяем содержимое
+	if len(result) != 2 {
+		t.Fatalf("Expected 2 records, got %d", len(result))
+	}
+
+	if result[0]["name"] != "Alice" || result[0]["age"] != 25.0 {
+		t.Errorf("First record mismatch: %v", result[0])
+	}
+
+	if result[1]["name"] != "Bob" || result[1]["age"] != 30.0 {
+		t.Errorf("Second record mismatch: %v", result[1])
 	}
 }

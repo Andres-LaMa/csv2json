@@ -5,75 +5,82 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"time"
-
-	"github.com/Andres-LaMa/csv2json/internal/parser"
-	"github.com/Andres-LaMa/csv2json/internal/utils"
+	"sort"
 )
 
 // JSONToCSV конвертирует JSON в CSV потоково.
 func JSONToCSV(jsonReader io.Reader, csvWriter io.Writer) error {
-	rows, err := parser.ParseJSON(jsonReader)
-	if err != nil {
-		return err
+	decoder := json.NewDecoder(jsonReader)
+	writer := csv.NewWriter(csvWriter)
+	defer writer.Flush()
+
+	// Читаем первый элемент, чтобы определить заголовки
+	var firstRecord map[string]interface{}
+	if err := decoder.Decode(&firstRecord); err != nil {
+		return fmt.Errorf("JSON decode: %v", err)
 	}
 
-	w := csv.NewWriter(csvWriter)
-	defer w.Flush()
-
-	// Записываем заголовки (первые ключи из первого объекта)
-	var headers []string
-	firstRow := <-rows
-	if firstRow == nil {
-		return nil
-	}
-
-	for key := range firstRow {
+	// Получаем все возможные заголовки
+	headers := make([]string, 0, len(firstRecord))
+	for key := range firstRecord {
 		headers = append(headers, key)
 	}
-	if err := w.Write(headers); err != nil {
-		utils.LogError(err)
+	sort.Strings(headers) // Сортируем для стабильности
+
+	// Пишем заголовки
+	if err := writer.Write(headers); err != nil {
 		return err
 	}
 
-	// Записываем первую строку
-	if err := writeCSVRow(w, headers, firstRow); err != nil {
+	// Обрабатываем первую запись
+	if err := writeCSVRecord(writer, headers, firstRecord); err != nil {
 		return err
 	}
 
-	// Обрабатываем остальные строки
-	for row := range rows {
-		if err := writeCSVRow(w, headers, row); err != nil {
-			utils.LogError(err)
-			continue
+	// Обрабатываем остальные записи
+	for {
+		var record map[string]interface{}
+		if err := decoder.Decode(&record); err != nil {
+			if err == io.EOF {
+				break
+			}
+			return fmt.Errorf("JSON decode: %v", err)
+		}
+
+		if err := writeCSVRecord(writer, headers, record); err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
-// writeCSVRow записывает одну строку в CSV.
-func writeCSVRow(w *csv.Writer, headers []string, row map[string]interface{}) error {
-	var record []string
-	for _, key := range headers {
-		val := row[key]
-		record = append(record, toString(val))
+func writeCSVRecord(writer *csv.Writer, headers []string, record map[string]interface{}) error {
+	row := make([]string, len(headers))
+	for i, header := range headers {
+		val := record[header]
+		row[i] = convertValueToString(val)
 	}
-	return w.Write(record)
+	return writer.Write(row)
 }
 
-// toString преобразует значение в строку (с поддержкой дат, чисел и вложенных JSON).
-func toString(v interface{}) string {
-	switch v := v.(type) {
+func convertValueToString(v interface{}) string {
+	if v == nil {
+		return ""
+	}
+
+	switch val := v.(type) {
 	case string:
-		return v
-	case int, float64:
-		return fmt.Sprintf("%v", v)
-	case time.Time:
-		return v.Format("2006-01-02")
-	default:
-		// Вложенные объекты/массивы → JSON-строка
-		jsonData, _ := json.Marshal(v)
+		return val
+	case bool, int, int8, int16, int32, int64, uint, uint8, uint32, uint64, float32, float64:
+		return fmt.Sprintf("%v", val)
+	case []interface{}, map[string]interface{}:
+		jsonData, err := json.Marshal(val)
+		if err != nil {
+			return fmt.Sprintf("%v", val)
+		}
 		return string(jsonData)
+	default:
+		return fmt.Sprintf("%v", val)
 	}
 }

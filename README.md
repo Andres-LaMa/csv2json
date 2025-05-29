@@ -34,7 +34,12 @@ cd csv2json
 
 # Сборка
 make build
+
+```bash
+
 или
+
+```
 go install github.com/your/repo/cmd/converter@latest
 ```
 ##  Использование
