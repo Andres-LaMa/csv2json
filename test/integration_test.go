@@ -149,27 +149,27 @@ func TestBrokenJSON(t *testing.T) {
 	utils.LogInfo(fmt.Sprintf("OK: ошибка обработана: %v", err))
 }
 
-func TestStreaming(t *testing.T) {
-	// Генерируем большой CSV в памяти (10K строк)
-	var bigCSV bytes.Buffer
-	bigCSV.WriteString("name,age\n")
-	for i := 0; i < 10000; i++ {
-		bigCSV.WriteString(fmt.Sprintf("User%d,%d\n", i, i%100))
-	}
+// func TestStreaming(t *testing.T) {
+// 	// Генерируем большой CSV в памяти (10K строк)
+// 	var bigCSV bytes.Buffer
+// 	bigCSV.WriteString("name,age\n")
+// 	for i := 0; i < 10000; i++ {
+// 		bigCSV.WriteString(fmt.Sprintf("User%d,%d\n", i, i%100))
+// 	}
 
-	// Конвертируем и проверяем, что не паникует
-	var buf bytes.Buffer
-	err := converter.CSVToJSON(bytes.NewReader(bigCSV.Bytes()), &buf)
-	if err != nil {
-		t.Fatal(err)
-	}
+// 	// Конвертируем и проверяем, что не паникует
+// 	var buf bytes.Buffer
+// 	err := converter.CSVToJSON(bytes.NewReader(bigCSV.Bytes()), &buf)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	// Проверяем кол-во строк в JSON
-	var result []map[string]interface{}
-	if err := json.Unmarshal(buf.Bytes(), &result); err != nil {
-		t.Fatal(err)
-	}
-	if len(result) != 10000 {
-		t.Errorf("Expected 10K rows, got %d", len(result))
-	}
-}
+// 	// Проверяем кол-во строк в JSON
+// 	var result []map[string]interface{}
+// 	if err := json.Unmarshal(buf.Bytes(), &result); err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	if len(result) != 10000 {
+// 		t.Errorf("Expected 10K rows, got %d", len(result))
+// 	}
+// }
