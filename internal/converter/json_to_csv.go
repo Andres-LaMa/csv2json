@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"sort"
 )
 
 // JSONToCSV конвертирует JSON в CSV потоково.
@@ -14,73 +13,100 @@ func JSONToCSV(jsonReader io.Reader, csvWriter io.Writer) error {
 	writer := csv.NewWriter(csvWriter)
 	defer writer.Flush()
 
-	// Читаем первый элемент, чтобы определить заголовки
-	var firstRecord map[string]interface{}
-	if err := decoder.Decode(&firstRecord); err != nil {
-		return fmt.Errorf("JSON decode: %v", err)
+	// Проверяем первый токен, чтобы определить тип данных
+	token, err := decoder.Token()
+	if err != nil {
+		return fmt.Errorf("JSON decode error: %v", err)
 	}
 
-	// Получаем все возможные заголовки
-	headers := make([]string, 0, len(firstRecord))
-	for key := range firstRecord {
-		headers = append(headers, key)
-	}
-	sort.Strings(headers) // Сортируем для стабильности
-
-	// Пишем заголовки
-	if err := writer.Write(headers); err != nil {
-		return err
-	}
-
-	// Обрабатываем первую запись
-	if err := writeCSVRecord(writer, headers, firstRecord); err != nil {
-		return err
-	}
-
-	// Обрабатываем остальные записи
-	for {
-		var record map[string]interface{}
-		if err := decoder.Decode(&record); err != nil {
-			if err == io.EOF {
-				break
-			}
-			return fmt.Errorf("JSON decode: %v", err)
+	// Обрабатываем разные случаи ввода
+	switch tok := token.(type) {
+	case json.Delim:
+		if tok == '[' {
+			// Это массив - обрабатываем каждый элемент
+			return processJSONArray(decoder, writer)
+		} else if tok == '{' {
+			// Это объект - обрабатываем как единичную запись
+			return processJSONObject(decoder, writer, tok)
 		}
-
-		if err := writeCSVRecord(writer, headers, record); err != nil {
-			return err
-		}
+	default:
+		return fmt.Errorf("unexpected JSON token: %v", tok)
 	}
 
 	return nil
 }
 
-func writeCSVRecord(writer *csv.Writer, headers []string, record map[string]interface{}) error {
+func processJSONArray(decoder *json.Decoder, writer *csv.Writer) error {
+	var headers []string
+	firstItem := true
+
+	for decoder.More() {
+		var record map[string]interface{}
+		if err := decoder.Decode(&record); err != nil {
+			return fmt.Errorf("JSON decode error: %v", err)
+		}
+
+		if firstItem {
+			// Определяем заголовки по первой записи
+			headers = make([]string, 0, len(record))
+			for key := range record {
+				headers = append(headers, key)
+			}
+			if err := writer.Write(headers); err != nil {
+				return err
+			}
+			firstItem = false
+		}
+
+		if err := writeCSVRow(writer, headers, record); err != nil {
+			return err
+		}
+	}
+
+	// Прочитать закрывающую скобку массива
+	_, err := decoder.Token()
+	return err
+}
+
+func processJSONObject(decoder *json.Decoder, writer *csv.Writer, startToken json.Delim) error {
+	var record map[string]interface{}
+	if err := decoder.Decode(&record); err != nil {
+		return fmt.Errorf("JSON decode error: %v", err)
+	}
+
+	// Определяем заголовки
+	headers := make([]string, 0, len(record))
+	for key := range record {
+		headers = append(headers, key)
+	}
+
+	// Пишем заголовки и данные
+	if err := writer.Write(headers); err != nil {
+		return err
+	}
+	if err := writeCSVRow(writer, headers, record); err != nil {
+		return err
+	}
+
+	// Прочитать закрывающую скобку объекта
+	_, err := decoder.Token()
+	return err
+}
+
+func writeCSVRow(writer *csv.Writer, headers []string, record map[string]interface{}) error {
 	row := make([]string, len(headers))
 	for i, header := range headers {
 		val := record[header]
-		row[i] = convertValueToString(val)
+		switch v := val.(type) {
+		case map[string]interface{}, []interface{}:
+			jsonData, err := json.Marshal(v)
+			if err != nil {
+				return err
+			}
+			row[i] = string(jsonData)
+		default:
+			row[i] = fmt.Sprintf("%s", val)
+		}
 	}
 	return writer.Write(row)
-}
-
-func convertValueToString(v interface{}) string {
-	if v == nil {
-		return ""
-	}
-
-	switch val := v.(type) {
-	case string:
-		return val
-	case bool, int, int8, int16, int32, int64, uint, uint8, uint32, uint64, float32, float64:
-		return fmt.Sprintf("%v", val)
-	case []interface{}, map[string]interface{}:
-		jsonData, err := json.Marshal(val)
-		if err != nil {
-			return fmt.Sprintf("%v", val)
-		}
-		return string(jsonData)
-	default:
-		return fmt.Sprintf("%v", val)
-	}
 }
