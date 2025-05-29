@@ -1,0 +1,31 @@
+name: Go CI/CD  
+
+on:  
+  push:  
+    branches: [ main ]  
+  pull_request:  
+    branches: [ main ]  
+
+jobs:  
+  test:  
+    runs-on: ubuntu-latest  
+    steps:  
+      - uses: actions/checkout@v4  
+      - uses: actions/setup-go@v4  
+        with:  
+          go-version: '1.22'  
+      - run: go test -v -coverprofile=coverage.out ./...  
+      - name: Codecov  
+        uses: codecov/codecov-action@v3  
+
+  build:  
+    needs: test  
+    runs-on: ubuntu-latest  
+    steps:  
+      - uses: actions/checkout@v4  
+      - uses: actions/setup-go@v4  
+      - run: go build -ldflags="-X 'main.Version=$(git describe --tags)'" -o csv2json ./cmd/converter  
+      - uses: softprops/action-gh-release@v1  
+        if: github.ref == 'refs/heads/main'  
+        with:  
+          files: csv2json  
