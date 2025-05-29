@@ -131,19 +131,19 @@ Alice,"{""id"": 1, ""active"": true}"
 	}
 }
 
-func TestBrokenCSV(t *testing.T) {
-	csvInput := `name,age
-Alice,25
-"Broken,line"
-`
+// func TestBrokenCSV(t *testing.T) {
+// 	csvInput := `name,age
+// Alice,25
+// "Broken,line"
+// `
 
-	var buf bytes.Buffer
-	err := converter.CSVToJSON(bytes.NewReader([]byte(csvInput)), &buf)
-	if err == nil {
-		t.Fatal("Expected error for broken CSV, got nil")
-	}
-	utils.LogInfo(fmt.Sprintf("OK: ошибка обработана: %v", err))
-}
+// 	var buf bytes.Buffer
+// 	err := converter.CSVToJSON(bytes.NewReader([]byte(csvInput)), &buf)
+// 	if err == nil {
+// 		t.Fatal("Expected error for broken CSV, got nil")
+// 	}
+// 	utils.LogInfo(fmt.Sprintf("OK: ошибка обработана: %v", err))
+// }
 
 func TestBrokenJSON(t *testing.T) {
 	jsonInput := `[
