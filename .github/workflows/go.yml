@@ -2,7 +2,8 @@ name: Go CI/CD
 
 on:  
   push:  
-    branches: [ main ]  
+    branches: [ main ]
+    tags: [ v* ]  # Добавляем триггер для тегов
   pull_request:  
     branches: [ main ]  
 
@@ -29,6 +30,6 @@ jobs:
       - uses: actions/setup-go@v4  
       - run: go build -ldflags="-X 'main.Version=$(git describe --tags)'" -o csv2json ./cmd/converter  
       - uses: softprops/action-gh-release@v1  
-        if: github.ref == 'refs/heads/main'  
+        if: startsWith(github.ref, 'refs/tags/')  # Запускаем только для тегов
         with:  
-          files: csv2json  
+          files: csv2json
