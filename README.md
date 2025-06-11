@@ -27,19 +27,19 @@
 
 ## Установка
 
-```bash
+
 # Клонирование репозитория
+```bash
 git clone https://github.com/your/repo
 cd csv2json
-
+```
 # Сборка
-make build
-
 ```bash
-
+make build
+```
 или
 
-```
+```bash
 go install github.com/your/repo/cmd/converter@latest
 ```
 ##  Использование
